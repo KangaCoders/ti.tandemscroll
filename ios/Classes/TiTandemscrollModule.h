@@ -13,6 +13,8 @@
 @interface TiTandemscrollModule : TiModule <UIScrollViewDelegate>
 {
     NSMutableArray* scrollViews;
+    NSMutableArray* scrollViewsVertically;
+    NSMutableArray* scrollViewsHorizontally;
     UIScrollView* controllingScrollView;
 }
 
