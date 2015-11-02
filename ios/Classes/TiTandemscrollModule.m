@@ -14,15 +14,15 @@
 #pragma mark Internal
 
 // this is generated for your module, please do not change it
--(id)moduleGUID
-{
-	return @"f7f041db-989f-47c9-b009-7977a59497a2";
-}
+ -(id)moduleGUID
+ {
+     return @"f7f041db-989f-47c9-b009-7977a59497a2";
+ }
 
 // this is generated for your module, please do not change it
--(NSString*)moduleId
-{
-	return @"ti.tandemscroll";
+ -(NSString*)moduleId
+ {
+   return @"ti.tandemscroll";
 }
 
 #pragma mark Cleanup
@@ -34,6 +34,26 @@
             [proxy forgetSelf];
         }
         RELEASE_TO_NIL(scrollViews);
+    }
+}
+
+-(void)unbindVerticalScrollViews
+{
+    if (scrollViewsVertically) {
+        for (TiUIScrollViewProxy* proxy in scrollViewsVertically) {
+            [proxy forgetSelf];
+        }
+        RELEASE_TO_NIL(scrollViewsVertically);
+    }
+}
+
+-(void)unbindHorizontalScrollViews
+{
+    if (scrollViewsHorizontally) {
+        for (TiUIScrollViewProxy* proxy in scrollViewsHorizontally) {
+            [proxy forgetSelf];
+        }
+        RELEASE_TO_NIL(scrollViewsHorizontally);
     }
 }
 
@@ -61,6 +81,8 @@
 {
     ENSURE_SINGLE_ARG(args, NSArray);
 
+    // controllingScrollView = nil;
+
     [self unbindScrollViews];
     scrollViews = [[NSMutableArray alloc] initWithCapacity:[args count]];
 
@@ -68,6 +90,9 @@
         [proxy rememberSelf];
         id view = proxy.view;
         UIScrollView* scroll = [self toScrollView:view];
+        if(controllingScrollView != nil){
+            controllingScrollView = scroll;
+        }
         scroll.delegate = self;
         [scrollViews addObject:proxy];
     }
@@ -77,7 +102,9 @@
 {
     ENSURE_SINGLE_ARG(args, NSArray);
 
-    [self unbindScrollViews];
+    // controllingScrollView = nil;
+
+    [self unbindHorizontalScrollViews];
     scrollViewsHorizontally = [[NSMutableArray alloc] initWithCapacity:[args count]];
 
     for (TiViewProxy* proxy in args) {
@@ -93,7 +120,9 @@
 {
     ENSURE_SINGLE_ARG(args, NSArray);
 
-    [self unbindScrollViews];
+    // controllingScrollView = nil;
+
+    [self unbindVerticalScrollViews];
     scrollViewsVertically = [[NSMutableArray alloc] initWithCapacity:[args count]];
 
     for (TiViewProxy* proxy in args) {
@@ -112,6 +141,50 @@
     controllingScrollView = scrollView;
 }
 
+- (void)scrollViewDidZoom:(UIScrollView *)scrollView
+{
+    if (scrollView != controllingScrollView)
+        return;
+
+    for (TiViewProxy* proxy in scrollViews)
+    {
+        id view = proxy.view;
+        UIScrollView* scroll = [self toScrollView:view];
+        if (scroll == controllingScrollView)
+        {
+            return;
+        }
+        [scroll setZoomScale:scrollView.zoomScale animated:NO];
+    }
+
+    for (TiViewProxy* proxy in scrollViewsVertically)
+    {
+        id view = proxy.view;
+        UIScrollView* scroll = [self toScrollView:view];
+        if (scroll == controllingScrollView)
+        {
+            return;
+        }
+        [scroll setZoomScale:scrollView.zoomScale animated:NO];
+    }
+
+    for (TiViewProxy* proxy in scrollViewsHorizontally)
+    {
+        id view = proxy.view;
+        UIScrollView* scroll = [self toScrollView:view];
+        if (scroll == controllingScrollView)
+        {
+            return;
+        }
+        [scroll setZoomScale:scrollView.zoomScale animated:NO];
+    }
+}
+
+- (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView
+{
+    return scrollView.subviews[0];
+}
+
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView
 {
     // We only care about scroll events from the view that is actually being dragged by the user.
@@ -127,16 +200,17 @@
         {
             CGPoint offset = [scrollView contentOffset];
             [proxy fireEvent:@"scroll" withObject:[NSDictionary dictionaryWithObjectsAndKeys:
-                                                   NUMFLOAT(offset.x),@"x",
-                                                   NUMFLOAT(offset.y),@"y",
-                                                   NUMBOOL([scrollView isDecelerating]),@"decelerating",
-                                                   NUMBOOL([scrollView isDragging]),@"dragging", nil]];
+               NUMFLOAT(offset.x),@"x",
+               NUMFLOAT(offset.y),@"y",
+               NUMBOOL([scrollView isDecelerating]),@"decelerating",
+               NUMBOOL([scrollView isDragging]),@"dragging", nil]];
             continue;
         }
 
         // Scroll proportionally.
+        [scroll setZoomScale:scrollView.zoomScale animated:NO];
         [scroll setContentOffset:CGPointMake(scrollView.contentOffset.x * scroll.contentSize.width / scrollView.contentSize.width,
-                                             scrollView.contentOffset.y * scroll.contentSize.height / scrollView.contentSize.height) animated:NO];
+         scrollView.contentOffset.y * scroll.contentSize.height / scrollView.contentSize.height) animated:NO];
     }
     for (TiViewProxy* proxy in scrollViewsVertically)
     {
@@ -147,16 +221,17 @@
         {
             CGPoint offset = [scrollView contentOffset];
             [proxy fireEvent:@"scroll" withObject:[NSDictionary dictionaryWithObjectsAndKeys:
-                                                   NUMFLOAT(offset.x),@"x",
-                                                   NUMFLOAT(offset.y),@"y",
-                                                   NUMBOOL([scrollView isDecelerating]),@"decelerating",
-                                                   NUMBOOL([scrollView isDragging]),@"dragging", nil]];
+               NUMFLOAT(offset.x),@"x",
+               NUMFLOAT(offset.y),@"y",
+               NUMBOOL([scrollView isDecelerating]),@"decelerating",
+               NUMBOOL([scrollView isDragging]),@"dragging", nil]];
             continue;
         }
 
         // Scroll proportionally.
+        [scroll setZoomScale:scrollView.zoomScale animated:NO];
         [scroll setContentOffset:CGPointMake(scroll.contentOffset.x,
-                                             scrollView.contentOffset.y * scroll.contentSize.height / scrollView.contentSize.height) animated:NO];
+         scrollView.contentOffset.y * scroll.contentSize.height / scrollView.contentSize.height) animated:NO];
     }
     for (TiViewProxy* proxy in scrollViewsHorizontally)
     {
@@ -167,16 +242,17 @@
         {
             CGPoint offset = [scrollView contentOffset];
             [proxy fireEvent:@"scroll" withObject:[NSDictionary dictionaryWithObjectsAndKeys:
-                                                   NUMFLOAT(offset.x),@"x",
-                                                   NUMFLOAT(offset.y),@"y",
-                                                   NUMBOOL([scrollView isDecelerating]),@"decelerating",
-                                                   NUMBOOL([scrollView isDragging]),@"dragging", nil]];
+               NUMFLOAT(offset.x),@"x",
+               NUMFLOAT(offset.y),@"y",
+               NUMBOOL([scrollView isDecelerating]),@"decelerating",
+               NUMBOOL([scrollView isDragging]),@"dragging", nil]];
             continue;
         }
 
         // Scroll proportionally.
+        [scroll setZoomScale:scrollView.zoomScale animated:NO];
         [scroll setContentOffset:CGPointMake(scrollView.contentOffset.x * scroll.contentSize.width / scrollView.contentSize.width,
-                                             scroll.contentOffset.y) animated:NO];
+         scroll.contentOffset.y) animated:NO];
     }
 }
 
